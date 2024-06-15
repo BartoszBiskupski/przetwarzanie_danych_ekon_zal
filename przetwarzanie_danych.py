@@ -4,17 +4,29 @@ import logging
 import os
 
 
+dane_config = {
+    'project_name': 'dane',
+    'file_path': 'dane_dla_studentow.csv',
+    'sep': ';',
+    'encoding': 'ISO-8859-1',
+    'analise_col': 'text',
+    'time_col': 'date',
+    'language': 'english'
+}
+
 class DataProcessing:
 
     def __init__(self, read_config):
         self.read_config = read_config
         self.project_name = read_config['project_name']
         self.file_path = read_config['file_path']
+        self.encoding = read_config['encoding']
+        self.sep = read_config['sep']
         self.data = None
         logging.info('Initializing the DataProcessing class')
 
     def read_csv(self):
-        self.data = pd.read_csv(self.file_path)
+        self.data = pd.read_csv(self.file_path, encoding=self.encoding, sep=self.sep)
         logging.info('Read data from CSV file')
         return self.data
 
@@ -35,3 +47,6 @@ class DataProcessing:
         logging.info('Data cleaning completed')
         self.save_to_db()
         logging.info('Data saved to the database')
+
+
+DataProcessing(dane_config).run()

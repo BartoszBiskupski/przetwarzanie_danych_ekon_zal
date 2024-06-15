@@ -18,4 +18,5 @@ size=num_records), 'Stanowisko': np.random.choice(['Analityk', 'Kierownik', 'In≈
 
 
 df = pd.DataFrame(dane)
+print(df)
 df.to_csv("dodatkowe_dane.csv", index=False)
