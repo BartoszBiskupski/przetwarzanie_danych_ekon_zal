@@ -1,0 +1,141 @@
+import yfinance as yf
+import statsmodels.api as sm
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import statsmodels
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+from matplotlib import pyplot
+from statsmodels.tsa.arima.model import ARIMA
+from math import sqrt
+from sklearn.metrics import mean_squared_error
+
+# Define a function to download stock data
+def download_stock_data(ticker, start_date, end_date):
+    stock_data = yf.download(ticker, start=start_date, end=end_date)
+    return stock_data
+
+
+df = download_stock_data('AAPL', '2019-01-01', '2024-05-31')
+
+
+print(df)
+def plot_stock_data(df):
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['Close'], label='Close Price')
+    plt.title('AAPL Stock Price')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+plot_stock_data(df)
+
+# decompose the time series into trend, seasonal, and residual components
+def decompose_time_series(df):
+    decomposition = sm.tsa.seasonal_decompose(df['Close'], model='multiplicative', period=252)
+    trend = decomposition.trend
+    seasonal = decomposition.seasonal
+    residual = decomposition.resid
+    return trend, seasonal, residual
+
+aapl_trend, aapl_seasonal, aapl_residual = decompose_time_series(df)
+def plot_decomposition(aapl_trend, aapl_seasonal, aapl_residual):
+    plt.figure(figsize=(10, 6))
+    plt.plot(aapl_trend, label='Trend')
+    plt.title('AAPL Stock Price Trend')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(aapl_seasonal, label='Seasonal')
+    plt.title('AAPL Stock Price Seasonal Component')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(aapl_residual, label='Residual')
+    plt.title('AAPL Stock Price Residual Component')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+# remove non-stationarity from the time series
+def remove_non_stationarity(df=df):
+    df['Close_diff'] = df['Close'].diff()
+    df.dropna(inplace=True)
+    return df
+
+
+def test_stationarity(df):
+    result = statsmodels.tsa.stattools.adfuller(df['Close_diff'])
+    print('ADF Statistic:', result[0])
+    print('p-value:', result[1])
+    print('Critical Values:', result[4])
+
+
+def test_stationarity_kpss(df):
+    result = statsmodels.tsa.stattools.kpss(df['Close_diff'])
+    print('KPSS Statistic:', result[0])
+    print('p-value:', result[1])
+    print('Critical Values:', result[3])
+
+
+
+def plot_acf_pacf(df):
+    fig, ax = plt.subplots(2, 1, figsize=(10, 6))
+    plot_acf(df['Close_diff'], lags=40, ax=ax[0])
+    plot_pacf(df['Close_diff'], lags=40, ax=ax[1])
+    plt.tight_layout()
+    plt.show()
+
+
+def fit_arima_model(df):
+    model = statsmodels.tsa.arima.model.ARIMA(df["Close"],
+                                              order=(10, 1, 0))
+    results = model.fit()
+    return results
+# print(fit_arima_model(remove_non_stationarity(df)).summary())
+
+# plot_stock_data(df)
+# plot_decomposition(aapl_trend, aapl_seasonal, aapl_residual)
+# test_stationarity(remove_non_stationarity(df))
+# test_stationarity_kpss(remove_non_stationarity(df))
+
+def forecast_arima_model(df):
+    forecast = fit_arima_model(df).get_forecast(steps=30)
+    forecast_values = forecast.predicted_mean
+    conf_int = forecast.conf_int()
+    return conf_int, forecast_values
+
+
+def plot_forecast(forecast):
+    conf_int, forecast_values = forecast
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['Close'], label='Actual', color='blue')
+    plt.plot(forecast_values, label='Forecast', color='red')
+    plt.fill_between(conf_int.index, conf_int.iloc[:, 0], conf_int.iloc[:, 1], color='red', alpha=0.3)
+    plt.title('AAPL Stock Price Forecast')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+print(forecast_arima_model(df))
