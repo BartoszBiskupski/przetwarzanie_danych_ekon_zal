@@ -5,11 +5,9 @@ import statsmodels
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import datetime
-from matplotlib import pyplot
 from statsmodels.tsa.arima.model import ARIMA
-from math import sqrt
-from sklearn.metrics import mean_squared_error
+import itertools
+
 
 # Define a function to download stock data
 def download_stock_data(ticker, start_date, end_date):
@@ -104,16 +102,16 @@ def plot_acf_pacf(df):
     plt.show()
 
 
-def fit_arima_model(df):
+def fit_arima_model(df, order=(5, 1, 0)):
     model = statsmodels.tsa.arima.model.ARIMA(df["Close"],
-                                              order=(10, 1, 10))
+                                              order=order)
     results = model.fit()  # Increase the number of iterations
     return results
 
 
-def forecast_arima_model(df):
+def forecast_arima_model(df, best_pdq):
     df.index = pd.date_range(start=df.index[0], periods=len(df.index), freq='B')
-    forecast = fit_arima_model(df).get_forecast(steps=30)
+    forecast = fit_arima_model(df, order=best_pdq).get_forecast(steps=30)
     forecast_values = forecast.predicted_mean
     conf_int = forecast.conf_int()
     return conf_int, forecast_values
@@ -133,9 +131,35 @@ def plot_forecast(df, forecast_values, conf_int):
     plt.show()
 
 
-conf_int, forecast_values = forecast_arima_model(appl_data)
 
 # print(conf_int)
 # print(forecast_values)
+
+
+
+# Define the p, d and q parameters to take any value between 0 and 2
+p = d = q = range(0, 4)
+
+# Generate all different combinations of p, d and q triplets
+pdq = list(itertools.product(p, d, q))
+
+# Run a grid with pdq parameters calculated
+best_aic = np.inf
+best_pdq = None
+temp_model = None
+
+for param in pdq:
+    try:
+        temp_model = ARIMA(appl_data["Close"], order=param)
+        results = temp_model.fit()
+        if results.aic < best_aic:
+            best_aic = results.aic
+            best_pdq = param
+    except:
+        continue
+
+print(f"Best ARIMA model order is {best_pdq} with AIC: {best_aic}")
+
+conf_int, forecast_values = forecast_arima_model(appl_data, best_pdq)
 
 plot_forecast(appl_data, forecast_values, conf_int)
