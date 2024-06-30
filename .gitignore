@@ -1,2 +1,5 @@
 .venv
 dododatkowe_dane.csv
+dane_dla_studentow.csv
+dodatkowe_dane.csv
+przetwarzanie_danych.py
