@@ -7,13 +7,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
 import itertools
+import matplotlib.backends.backend_pdf
+import datetime
 
+# Get the current date and time
+now = datetime.datetime.now()
+
+# Format the current date and time as a string
+timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+
+# Create a PdfPages object with the current timestamp in the file name
+pdf_pages = matplotlib.backends.backend_pdf.PdfPages(f'model_order_results_{timestamp_str}.pdf')
 
 # Define a function to download stock data
 def download_stock_data(ticker, start_date, end_date):
     stock_data = yf.download(ticker, start=start_date, end=end_date)
     return stock_data
-
 
 appl_data = download_stock_data('AAPL', '2019-01-01', '2024-05-31')
 
@@ -28,7 +37,9 @@ def plot_stock_data(df):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    # Save the figure to the PDF file
+    pdf_pages.savefig(plt.gcf())
+    plt.close()
 
 plot_stock_data(appl_data)
 
@@ -128,7 +139,8 @@ def plot_forecast(df, forecast_values, conf_int):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    pdf_pages.savefig(plt.gcf())
+    plt.close()
 
 
 
@@ -138,7 +150,7 @@ def plot_forecast(df, forecast_values, conf_int):
 
 
 # Define the p, d and q parameters to take any value between 0 and 2
-p = d = q = range(0, 4)
+p = d = q = range(1, 5)
 
 # Generate all different combinations of p, d and q triplets
 pdq = list(itertools.product(p, d, q))
@@ -148,6 +160,16 @@ best_aic = np.inf
 best_pdq = None
 temp_model = None
 
+# conf_int, forecast_values = forecast_arima_model(appl_data, best_pdq)
+
+# plot_forecast(appl_data, forecast_values, conf_int)
+
+
+
+
+# Create a PdfPages object
+
+
 for param in pdq:
     try:
         temp_model = ARIMA(appl_data["Close"], order=param)
@@ -155,11 +177,30 @@ for param in pdq:
         if results.aic < best_aic:
             best_aic = results.aic
             best_pdq = param
+
     except:
         continue
 
-print(f"Best ARIMA model order is {best_pdq} with AIC: {best_aic}")
-
+msg = f"Best ARIMA model order is {best_pdq} with AIC: {best_aic}"
 conf_int, forecast_values = forecast_arima_model(appl_data, best_pdq)
 
+# Create a new figure
+fig, ax = plt.subplots()
+
+# Plot the forecast
 plot_forecast(appl_data, forecast_values, conf_int)
+
+# Add the text to the figure
+plt.text(0.5, 0.5, msg,
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+
+# Save the figure to the PDF file
+pdf_pages.savefig(fig)
+
+# Close the figure to free up memory
+plt.close(fig)
+
+# Close the PDF file
+pdf_pages.close()
+
+print(msg)
