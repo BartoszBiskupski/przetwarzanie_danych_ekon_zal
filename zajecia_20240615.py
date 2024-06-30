@@ -17,10 +17,10 @@ def download_stock_data(ticker, start_date, end_date):
     return stock_data
 
 
-df = download_stock_data('AAPL', '2019-01-01', '2024-05-31')
+appl_data = download_stock_data('AAPL', '2019-01-01', '2024-05-31')
 
 
-print(df)
+print(appl_data)
 def plot_stock_data(df):
     plt.figure(figsize=(10, 6))
     plt.plot(df['Close'], label='Close Price')
@@ -32,7 +32,7 @@ def plot_stock_data(df):
     plt.tight_layout()
     plt.show()
 
-plot_stock_data(df)
+plot_stock_data(appl_data)
 
 # decompose the time series into trend, seasonal, and residual components
 def decompose_time_series(df):
@@ -42,7 +42,7 @@ def decompose_time_series(df):
     residual = decomposition.resid
     return trend, seasonal, residual
 
-aapl_trend, aapl_seasonal, aapl_residual = decompose_time_series(df)
+aapl_trend, aapl_seasonal, aapl_residual = decompose_time_series(appl_data)
 def plot_decomposition(aapl_trend, aapl_seasonal, aapl_residual):
     plt.figure(figsize=(10, 6))
     plt.plot(aapl_trend, label='Trend')
@@ -75,7 +75,7 @@ def plot_decomposition(aapl_trend, aapl_seasonal, aapl_residual):
     plt.show()
 
 # remove non-stationarity from the time series
-def remove_non_stationarity(df=df):
+def remove_non_stationarity(df=appl_data):
     df['Close_diff'] = df['Close'].diff()
     df.dropna(inplace=True)
     return df
@@ -106,29 +106,24 @@ def plot_acf_pacf(df):
 
 def fit_arima_model(df):
     model = statsmodels.tsa.arima.model.ARIMA(df["Close"],
-                                              order=(10, 1, 0))
-    results = model.fit()
+                                              order=(10, 1, 10))
+    results = model.fit()  # Increase the number of iterations
     return results
-# print(fit_arima_model(remove_non_stationarity(df)).summary())
 
-# plot_stock_data(df)
-# plot_decomposition(aapl_trend, aapl_seasonal, aapl_residual)
-# test_stationarity(remove_non_stationarity(df))
-# test_stationarity_kpss(remove_non_stationarity(df))
 
 def forecast_arima_model(df):
+    df.index = pd.date_range(start=df.index[0], periods=len(df.index), freq='B')
     forecast = fit_arima_model(df).get_forecast(steps=30)
     forecast_values = forecast.predicted_mean
     conf_int = forecast.conf_int()
     return conf_int, forecast_values
 
 
-def plot_forecast(forecast):
-    conf_int, forecast_values = forecast
+def plot_forecast(df, forecast_values, conf_int):
     plt.figure(figsize=(10, 6))
-    plt.plot(df['Close'], label='Actual', color='blue')
-    plt.plot(forecast_values, label='Forecast', color='red')
-    plt.fill_between(conf_int.index, conf_int.iloc[:, 0], conf_int.iloc[:, 1], color='red', alpha=0.3)
+    plt.plot(df['Close'], label='Close Price')
+    plt.plot(forecast_values, label='Forecast')
+    plt.fill_between(conf_int.index, conf_int.iloc[:, 0], conf_int.iloc[:, 1], color='k', alpha=0.2)
     plt.title('AAPL Stock Price Forecast')
     plt.xlabel('Date')
     plt.ylabel('Price')
@@ -138,4 +133,9 @@ def plot_forecast(forecast):
     plt.show()
 
 
-print(forecast_arima_model(df))
+conf_int, forecast_values = forecast_arima_model(appl_data)
+
+# print(conf_int)
+# print(forecast_values)
+
+plot_forecast(appl_data, forecast_values, conf_int)
