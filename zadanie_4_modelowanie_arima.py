@@ -17,7 +17,7 @@ now = datetime.datetime.now()
 timestamp_str = now.strftime("%Y%m%d_%H%M%S")
 
 # Create a PdfPages object with the current timestamp in the file name
-pdf_pages = matplotlib.backends.backend_pdf.PdfPages(f'model_order_results_{timestamp_str}.pdf')
+pdf_pages = matplotlib.backends.backend_pdf.PdfPages(f'zadanie_4_{timestamp_str}.pdf')
 
 # Define a function to download stock data
 def download_stock_data(ticker, start_date, end_date):
